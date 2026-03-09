@@ -3,6 +3,7 @@
 //! CLI tools bundle a SKILL.md via `include_str!` and use this module to install
 //! it to the appropriate location for the active agent environment.
 
+use crate::detect::Environment;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
@@ -14,26 +15,41 @@ pub struct SkillConfig {
     pub content: String,
     /// The tool version (typically from `env!("CARGO_PKG_VERSION")`).
     pub version: String,
+    /// The detected agent environment (used for path resolution).
+    pub environment: Environment,
 }
 
 impl SkillConfig {
     /// Create a new skill config.
+    /// Create a new skill config, auto-detecting the agent environment.
     pub fn new(name: impl Into<String>, content: impl Into<String>, version: impl Into<String>) -> Self {
         Self {
             name: name.into(),
             content: content.into(),
             version: version.into(),
+            environment: Environment::detect(),
+        }
+    }
+
+    /// Create a new skill config with an explicit environment.
+    pub fn with_environment(
+        name: impl Into<String>,
+        content: impl Into<String>,
+        version: impl Into<String>,
+        environment: Environment,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            content: content.into(),
+            version: version.into(),
+            environment,
         }
     }
 
     /// Resolve the skill file path under the given root (or CWD if None).
-    /// Currently targets Claude Code layout: `.claude/skills/<name>/SKILL.md`
+    /// Uses the detected environment to determine the path layout.
     pub fn skill_path(&self, root: Option<&Path>) -> PathBuf {
-        let rel = format!(".claude/skills/{}/SKILL.md", self.name);
-        match root {
-            Some(r) => r.join(rel),
-            None => PathBuf::from(rel),
-        }
+        self.environment.skill_path(&self.name, root)
     }
 
     /// Install the bundled SKILL.md to the project.
@@ -121,7 +137,12 @@ mod tests {
     use super::*;
 
     fn test_config() -> SkillConfig {
-        SkillConfig::new("test-tool", "# Test Skill\n\nSome content.\n", "1.0.0")
+        SkillConfig::with_environment(
+            "test-tool",
+            "# Test Skill\n\nSome content.\n",
+            "1.0.0",
+            crate::detect::Environment::ClaudeCode,
+        )
     }
 
     #[test]
