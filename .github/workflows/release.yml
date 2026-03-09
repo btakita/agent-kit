@@ -17,6 +17,6 @@ jobs:
       - run: cargo clippy -- -D warnings
       - run: cargo test
       - name: Publish to crates.io
-        run: cargo publish
+        run: cargo publish --allow-dirty
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
