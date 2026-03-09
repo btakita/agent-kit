@@ -1,0 +1,13 @@
+[package]
+name = "agent-kit"
+version = "0.1.0"
+edition = "2024"
+description = "Toolkit for CLI tools integrating with AI agent loops"
+license = "MIT"
+repository = "https://github.com/btakita/agent-kit"
+
+[dependencies]
+anyhow = "1"
+
+[dev-dependencies]
+tempfile = "3"
