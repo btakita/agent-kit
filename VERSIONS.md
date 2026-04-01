@@ -1,5 +1,16 @@
 # Versions
 
+## 0.3.0 (2026-04-01)
+
+- `hooks` feature — file-based event coordination between agent sessions
+  - `HookRegistry` — fire/poll/gc events with TTL-based expiry
+  - `HookTransport` trait — abstract delivery mechanism
+  - `FileTransport` — JSON file events (always available)
+  - `SocketTransport` — Unix domain socket with ack protocol
+  - `ChainTransport` — composable transport fallback chain
+  - `fire_and_deliver` — fire locally + deliver to target sessions
+  - 10 unit tests (fire/poll round trip, TTL expiry, transport chain, delivery)
+
 ## 0.2.0 (2026-03-09)
 
 - `detect::Environment` — auto-detect agent environment (Claude Code, OpenCode, Codex, Generic)
