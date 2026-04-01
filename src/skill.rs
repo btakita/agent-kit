@@ -108,6 +108,42 @@ impl SkillConfig {
         }
     }
 
+    /// Install the skill to a specific environment (overriding auto-detection).
+    pub fn install_for(&self, env: Environment, root: Option<&Path>) -> Result<()> {
+        let rel = env.skill_rel_path(&self.name);
+        let path = match root {
+            Some(r) => r.join(rel),
+            None => rel,
+        };
+
+        if path.exists() {
+            let existing = std::fs::read_to_string(&path)
+                .with_context(|| format!("failed to read {}", path.display()))?;
+            if existing == self.content {
+                eprintln!("[{}] already up to date (v{}).", env, self.version);
+                return Ok(());
+            }
+        }
+
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
+        }
+
+        std::fs::write(&path, &self.content)
+            .with_context(|| format!("failed to write {}", path.display()))?;
+        eprintln!("[{}] installed skill v{} → {}", env, self.version, path.display());
+        Ok(())
+    }
+
+    /// Install the skill to all supported environments.
+    pub fn install_all(&self, root: Option<&Path>) -> Result<()> {
+        for (env, _) in Environment::all_skill_rel_paths(&self.name) {
+            self.install_for(env, root)?;
+        }
+        Ok(())
+    }
+
     /// Uninstall the skill file and its parent directory (if empty).
     pub fn uninstall(&self, root: Option<&Path>) -> Result<()> {
         let path = self.skill_path(root);
