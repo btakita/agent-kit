@@ -299,11 +299,14 @@ impl HookTransport for FileTransport {
 ///
 /// Expects a socket at `<project_root>/.agent-doc/hooks.sock`.
 /// The listener is implemented by the consuming application (e.g., agent-doc).
+/// Only available on Unix platforms (Unix domain sockets are not available on Windows).
+#[cfg(unix)]
 pub struct SocketTransport {
     /// Path to the Unix domain socket.
     pub socket_path: PathBuf,
 }
 
+#[cfg(unix)]
 impl SocketTransport {
     pub fn new(socket_path: impl Into<PathBuf>) -> Self {
         Self { socket_path: socket_path.into() }
@@ -317,6 +320,7 @@ impl SocketTransport {
     }
 }
 
+#[cfg(unix)]
 impl HookTransport for SocketTransport {
     fn deliver(&self, _target_session: &str, event: &ReceivedEvent) -> Result<bool> {
         use std::io::Write;
@@ -591,12 +595,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn socket_transport_unavailable_when_no_socket() {
         let transport = SocketTransport::new("/nonexistent/hooks.sock");
         assert!(!transport.is_available("any"));
     }
 
     #[test]
+    #[cfg(unix)]
     fn chain_transport_falls_through() {
         let tmp = tempfile::TempDir::new().unwrap();
 
