@@ -69,6 +69,52 @@ impl Environment {
             None => rel,
         }
     }
+
+    /// Return the rules/instruction file directory for this environment.
+    ///
+    /// | Environment | Directory |
+    /// |-------------|-----------|
+    /// | Claude Code | `.claude/` (CLAUDE.md lives at root) |
+    /// | Cursor | `.cursor/rules/` |
+    /// | Windsurf | `.windsurf/rules/` |
+    /// | Others | `.agent/rules/` |
+    pub fn rules_dir(&self) -> PathBuf {
+        match self {
+            Self::Cursor => PathBuf::from(".cursor/rules"),
+            _ => PathBuf::from(".agent/rules"),
+        }
+    }
+
+    /// Return the runbooks directory for this environment.
+    ///
+    /// Runbooks use `.agent/runbooks/` universally — they're tool-agnostic.
+    pub fn runbooks_dir(&self) -> PathBuf {
+        PathBuf::from(".agent/runbooks")
+    }
+
+    /// Return the memories directory for this environment.
+    ///
+    /// Memories use `.agent/memories/` universally — they're tool-agnostic.
+    pub fn memories_dir(&self) -> PathBuf {
+        PathBuf::from(".agent/memories")
+    }
+
+    /// Return the skills directory for this environment.
+    ///
+    /// | Environment | Directory |
+    /// |-------------|-----------|
+    /// | Claude Code | `.claude/skills/` |
+    /// | OpenCode | `.opencode/skills/` |
+    /// | Cursor | `.cursor/rules/` (skills map to rules) |
+    /// | Others | `.agent/skills/` |
+    pub fn skills_dir(&self) -> PathBuf {
+        match self {
+            Self::ClaudeCode => PathBuf::from(".claude/skills"),
+            Self::OpenCode => PathBuf::from(".opencode/skills"),
+            Self::Cursor => PathBuf::from(".cursor/rules"),
+            _ => PathBuf::from(".agent/skills"),
+        }
+    }
 }
 
 impl Environment {
@@ -252,5 +298,37 @@ mod tests {
         assert_eq!(Environment::Codex.to_string(), "Codex");
         assert_eq!(Environment::Cursor.to_string(), "Cursor");
         assert_eq!(Environment::Generic.to_string(), "Generic");
+    }
+
+    #[test]
+    fn rules_dir_cursor_specific() {
+        assert_eq!(Environment::Cursor.rules_dir(), PathBuf::from(".cursor/rules"));
+    }
+
+    #[test]
+    fn rules_dir_generic() {
+        assert_eq!(Environment::ClaudeCode.rules_dir(), PathBuf::from(".agent/rules"));
+        assert_eq!(Environment::Generic.rules_dir(), PathBuf::from(".agent/rules"));
+    }
+
+    #[test]
+    fn runbooks_dir_universal() {
+        assert_eq!(Environment::ClaudeCode.runbooks_dir(), PathBuf::from(".agent/runbooks"));
+        assert_eq!(Environment::Cursor.runbooks_dir(), PathBuf::from(".agent/runbooks"));
+        assert_eq!(Environment::Generic.runbooks_dir(), PathBuf::from(".agent/runbooks"));
+    }
+
+    #[test]
+    fn memories_dir_universal() {
+        assert_eq!(Environment::ClaudeCode.memories_dir(), PathBuf::from(".agent/memories"));
+        assert_eq!(Environment::Generic.memories_dir(), PathBuf::from(".agent/memories"));
+    }
+
+    #[test]
+    fn skills_dir_per_environment() {
+        assert_eq!(Environment::ClaudeCode.skills_dir(), PathBuf::from(".claude/skills"));
+        assert_eq!(Environment::OpenCode.skills_dir(), PathBuf::from(".opencode/skills"));
+        assert_eq!(Environment::Cursor.skills_dir(), PathBuf::from(".cursor/rules"));
+        assert_eq!(Environment::Generic.skills_dir(), PathBuf::from(".agent/skills"));
     }
 }
