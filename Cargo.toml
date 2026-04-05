@@ -1,6 +1,6 @@
 [package]
 name = "agent-kit"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2024"
 description = "Toolkit for CLI tools integrating with AI agent loops"
 license = "MIT"
