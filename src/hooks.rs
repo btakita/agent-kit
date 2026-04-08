@@ -182,19 +182,19 @@ impl HookRegistry {
             }
 
             // Parse event
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                    events.push(ReceivedEvent {
-                        name: name.to_string(),
-                        event: Event {
-                            file: json["file"].as_str().unwrap_or("").to_string(),
-                            session_id: json["session_id"].as_str().unwrap_or("").to_string(),
-                            data: json["data"].clone(),
-                        },
-                        timestamp: json["timestamp"].as_u64().unwrap_or(file_ts),
-                        event_id: json["event_id"].as_str().unwrap_or("").to_string(),
-                    });
-                }
+            if let Ok(content) = std::fs::read_to_string(&path)
+                && let Ok(json) = serde_json::from_str::<serde_json::Value>(&content)
+            {
+                events.push(ReceivedEvent {
+                    name: name.to_string(),
+                    event: Event {
+                        file: json["file"].as_str().unwrap_or("").to_string(),
+                        session_id: json["session_id"].as_str().unwrap_or("").to_string(),
+                        data: json["data"].clone(),
+                    },
+                    timestamp: json["timestamp"].as_u64().unwrap_or(file_ts),
+                    event_id: json["event_id"].as_str().unwrap_or("").to_string(),
+                });
             }
         }
 
