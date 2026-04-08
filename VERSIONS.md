@@ -1,5 +1,18 @@
 # Versions
 
+## 0.4.0
+
+- `audit_common` — shared audit primitives (moved from `instruction-files`)
+- `Environment` path methods: `rules_dir()`, `runbooks_dir()`, `memories_dir()`, `skills_dir()`
+- Add Spec/Contracts/Evals convention
+- Remove `skill` module (moved to `agent-skills` crate)
+- Windows compatibility: gate `SocketTransport` behind `#[cfg(unix)]`
+
+## 0.3.1
+
+- Multi-harness `skill install` support
+- Cursor IDE support
+
 ## 0.3.0 (2026-04-01)
 
 - `hooks` feature — file-based event coordination between agent sessions
