@@ -22,7 +22,11 @@ pub struct SkillConfig {
 impl SkillConfig {
     /// Create a new skill config.
     /// Create a new skill config, auto-detecting the agent environment.
-    pub fn new(name: impl Into<String>, content: impl Into<String>, version: impl Into<String>) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        content: impl Into<String>,
+        version: impl Into<String>,
+    ) -> Self {
         Self {
             name: name.into(),
             content: content.into(),
@@ -89,7 +93,10 @@ impl SkillConfig {
         let path = self.skill_path(root);
 
         if !path.exists() {
-            eprintln!("Not installed. Run `{} skill install` to install.", self.name);
+            eprintln!(
+                "Not installed. Run `{} skill install` to install.",
+                self.name
+            );
             return Ok(false);
         }
 
@@ -132,7 +139,12 @@ impl SkillConfig {
 
         std::fs::write(&path, &self.content)
             .with_context(|| format!("failed to write {}", path.display()))?;
-        eprintln!("[{}] installed skill v{} → {}", env, self.version, path.display());
+        eprintln!(
+            "[{}] installed skill v{} → {}",
+            env,
+            self.version,
+            path.display()
+        );
         Ok(())
     }
 
@@ -185,7 +197,10 @@ mod tests {
     fn skill_path_with_root() {
         let config = test_config();
         let path = config.skill_path(Some(Path::new("/project")));
-        assert_eq!(path, PathBuf::from("/project/.claude/skills/test-tool/SKILL.md"));
+        assert_eq!(
+            path,
+            PathBuf::from("/project/.claude/skills/test-tool/SKILL.md")
+        );
     }
 
     #[test]
