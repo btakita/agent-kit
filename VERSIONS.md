@@ -2,6 +2,7 @@
 
 ## 0.4.0
 
+- `find_instruction_files()` now prunes `skip_dirs` during recursive discovery, so `audit-docs` no longer walks vendored/cache trees like `node_modules`, `.venv`, `target`, or `vendor` before filtering results
 - `audit_common` — shared audit primitives (moved from `instruction-files`)
 - `Environment` path methods: `rules_dir()`, `runbooks_dir()`, `memories_dir()`, `skills_dir()`
 - Add Spec/Contracts/Evals convention

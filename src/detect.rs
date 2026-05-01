@@ -240,7 +240,10 @@ mod tests {
     fn skill_path_claude_with_root() {
         let env = Environment::ClaudeCode;
         let path = env.skill_path("my-tool", Some(Path::new("/project")));
-        assert_eq!(path, PathBuf::from("/project/.claude/skills/my-tool/SKILL.md"));
+        assert_eq!(
+            path,
+            PathBuf::from("/project/.claude/skills/my-tool/SKILL.md")
+        );
     }
 
     #[test]
@@ -276,12 +279,24 @@ mod tests {
 
     #[test]
     fn from_name_parses_variants() {
-        assert_eq!(Environment::from_name("claude"), Some(Environment::ClaudeCode));
-        assert_eq!(Environment::from_name("claude-code"), Some(Environment::ClaudeCode));
-        assert_eq!(Environment::from_name("opencode"), Some(Environment::OpenCode));
+        assert_eq!(
+            Environment::from_name("claude"),
+            Some(Environment::ClaudeCode)
+        );
+        assert_eq!(
+            Environment::from_name("claude-code"),
+            Some(Environment::ClaudeCode)
+        );
+        assert_eq!(
+            Environment::from_name("opencode"),
+            Some(Environment::OpenCode)
+        );
         assert_eq!(Environment::from_name("codex"), Some(Environment::Codex));
         assert_eq!(Environment::from_name("cursor"), Some(Environment::Cursor));
-        assert_eq!(Environment::from_name("generic"), Some(Environment::Generic));
+        assert_eq!(
+            Environment::from_name("generic"),
+            Some(Environment::Generic)
+        );
         assert_eq!(Environment::from_name("unknown"), None);
     }
 
@@ -302,33 +317,69 @@ mod tests {
 
     #[test]
     fn rules_dir_cursor_specific() {
-        assert_eq!(Environment::Cursor.rules_dir(), PathBuf::from(".cursor/rules"));
+        assert_eq!(
+            Environment::Cursor.rules_dir(),
+            PathBuf::from(".cursor/rules")
+        );
     }
 
     #[test]
     fn rules_dir_generic() {
-        assert_eq!(Environment::ClaudeCode.rules_dir(), PathBuf::from(".agent/rules"));
-        assert_eq!(Environment::Generic.rules_dir(), PathBuf::from(".agent/rules"));
+        assert_eq!(
+            Environment::ClaudeCode.rules_dir(),
+            PathBuf::from(".agent/rules")
+        );
+        assert_eq!(
+            Environment::Generic.rules_dir(),
+            PathBuf::from(".agent/rules")
+        );
     }
 
     #[test]
     fn runbooks_dir_universal() {
-        assert_eq!(Environment::ClaudeCode.runbooks_dir(), PathBuf::from(".agent/runbooks"));
-        assert_eq!(Environment::Cursor.runbooks_dir(), PathBuf::from(".agent/runbooks"));
-        assert_eq!(Environment::Generic.runbooks_dir(), PathBuf::from(".agent/runbooks"));
+        assert_eq!(
+            Environment::ClaudeCode.runbooks_dir(),
+            PathBuf::from(".agent/runbooks")
+        );
+        assert_eq!(
+            Environment::Cursor.runbooks_dir(),
+            PathBuf::from(".agent/runbooks")
+        );
+        assert_eq!(
+            Environment::Generic.runbooks_dir(),
+            PathBuf::from(".agent/runbooks")
+        );
     }
 
     #[test]
     fn memories_dir_universal() {
-        assert_eq!(Environment::ClaudeCode.memories_dir(), PathBuf::from(".agent/memories"));
-        assert_eq!(Environment::Generic.memories_dir(), PathBuf::from(".agent/memories"));
+        assert_eq!(
+            Environment::ClaudeCode.memories_dir(),
+            PathBuf::from(".agent/memories")
+        );
+        assert_eq!(
+            Environment::Generic.memories_dir(),
+            PathBuf::from(".agent/memories")
+        );
     }
 
     #[test]
     fn skills_dir_per_environment() {
-        assert_eq!(Environment::ClaudeCode.skills_dir(), PathBuf::from(".claude/skills"));
-        assert_eq!(Environment::OpenCode.skills_dir(), PathBuf::from(".opencode/skills"));
-        assert_eq!(Environment::Cursor.skills_dir(), PathBuf::from(".cursor/rules"));
-        assert_eq!(Environment::Generic.skills_dir(), PathBuf::from(".agent/skills"));
+        assert_eq!(
+            Environment::ClaudeCode.skills_dir(),
+            PathBuf::from(".claude/skills")
+        );
+        assert_eq!(
+            Environment::OpenCode.skills_dir(),
+            PathBuf::from(".opencode/skills")
+        );
+        assert_eq!(
+            Environment::Cursor.skills_dir(),
+            PathBuf::from(".cursor/rules")
+        );
+        assert_eq!(
+            Environment::Generic.skills_dir(),
+            PathBuf::from(".agent/skills")
+        );
     }
 }

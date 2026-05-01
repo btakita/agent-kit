@@ -67,7 +67,7 @@ Preset configurations control discovery scope and validation behavior:
 | Function | Purpose |
 |----------|---------|
 | `find_root(config)` | Walk up from CWD looking for root markers, then `.git`, then fall back to CWD |
-| `find_instruction_files(root, config)` | Glob for AGENTS.md, SKILL.md, CLAUDE.md, runbooks, SPEC.md, README.md |
+| `find_instruction_files(root, config)` | Discover AGENTS.md, SKILL.md, CLAUDE.md, runbooks, SPEC.md, README.md; recursive walks prune `config.skip_dirs` before descending |
 
 ## Hook System
 

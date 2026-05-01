@@ -60,8 +60,8 @@ impl AuditConfig {
             include_claude_md: true,
             source_extensions: vec![
                 "rs", "ts", "tsx", "js", "jsx", "py", "go", "rb", "java", "kt", "c", "cpp", "h",
-                "hpp", "cs", "swift", "zig", "hs", "ml", "ex", "exs", "clj", "scala", "lua",
-                "php", "sh", "bash", "zsh",
+                "hpp", "cs", "swift", "zig", "hs", "ml", "ex", "exs", "clj", "scala", "lua", "php",
+                "sh", "bash", "zsh",
             ],
             source_dirs: vec!["src", "lib", "app", "pkg", "cmd", "internal"],
             skip_dirs: vec![
@@ -123,9 +123,8 @@ pub fn is_agent_file(rel: &str, config: &AuditConfig) -> bool {
 /// Default line budget for combined instruction files.
 pub const LINE_BUDGET: usize = 1000;
 
-static MACHINE_LOCAL_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?m)(?:~/|/home/\w+|/Users/\w+|/root/|/tmp/|C:\\Users\\)").unwrap()
-});
+static MACHINE_LOCAL_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?m)(?:~/|/home/\w+|/Users/\w+|/root/|/tmp/|C:\\Users\\)").unwrap());
 
 /// Check instruction files for machine-local path references.
 ///
@@ -230,7 +229,11 @@ pub fn check_staleness(files: &[PathBuf], root: &Path, config: &AuditConfig) -> 
             && let Ok(doc_mtime) = meta.modified()
             && doc_mtime < newest_mtime
         {
-            let rel = doc.strip_prefix(root).unwrap_or(doc).to_string_lossy().to_string();
+            let rel = doc
+                .strip_prefix(root)
+                .unwrap_or(doc)
+                .to_string_lossy()
+                .to_string();
             let src_rel = newest_src
                 .strip_prefix(root)
                 .unwrap_or(&newest_src)
@@ -262,7 +265,11 @@ pub fn check_line_budget(
     for f in files {
         if let Ok(content) = std::fs::read_to_string(f) {
             let n = content.lines().count();
-            let rel = f.strip_prefix(root).unwrap_or(f).to_string_lossy().to_string();
+            let rel = f
+                .strip_prefix(root)
+                .unwrap_or(f)
+                .to_string_lossy()
+                .to_string();
             if is_agent_file(&rel, config) {
                 total += n;
             }
@@ -333,6 +340,86 @@ pub fn find_root(config: &AuditConfig) -> PathBuf {
 /// - Glob patterns: .claude/**/SKILL.md, .agents/**/SKILL.md, .agents/**/AGENTS.md, src/**/AGENTS.md
 /// - If `config.include_claude_md`: also .claude/**/CLAUDE.md, src/**/CLAUDE.md
 pub fn find_instruction_files(root: &Path, config: &AuditConfig) -> Vec<PathBuf> {
+    fn should_skip_dir(path: &Path, skip_dirs: &[&str]) -> bool {
+        path.file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|name| skip_dirs.contains(&name))
+    }
+
+    fn collect_named_files_recursive(
+        base_dir: &Path,
+        file_name: &str,
+        skip_dirs: &[&str],
+        found: &mut std::collections::HashSet<PathBuf>,
+    ) {
+        if !base_dir.exists() {
+            return;
+        }
+
+        let mut stack = vec![base_dir.to_path_buf()];
+        while let Some(dir) = stack.pop() {
+            let Ok(entries) = std::fs::read_dir(&dir) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    if should_skip_dir(&path, skip_dirs) {
+                        continue;
+                    }
+                    stack.push(path);
+                } else if path.file_name().and_then(|n| n.to_str()) == Some(file_name) {
+                    found.insert(path);
+                }
+            }
+        }
+    }
+
+    fn collect_top_level_markdown_files(
+        dir: &Path,
+        found: &mut std::collections::HashSet<PathBuf>,
+    ) {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("md") {
+                found.insert(path);
+            }
+        }
+    }
+
+    fn collect_runbook_files_recursive(
+        base_dir: &Path,
+        skip_dirs: &[&str],
+        found: &mut std::collections::HashSet<PathBuf>,
+    ) {
+        if !base_dir.exists() {
+            return;
+        }
+
+        let mut stack = vec![base_dir.to_path_buf()];
+        while let Some(dir) = stack.pop() {
+            let Ok(entries) = std::fs::read_dir(&dir) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if !path.is_dir() {
+                    continue;
+                }
+                if should_skip_dir(&path, skip_dirs) {
+                    continue;
+                }
+                if path.file_name().and_then(|n| n.to_str()) == Some("runbooks") {
+                    collect_top_level_markdown_files(&path, found);
+                }
+                stack.push(path);
+            }
+        }
+    }
+
     let mut root_patterns = vec!["AGENTS.md", "README.md", "SPEC.md"];
     if config.include_claude_md {
         root_patterns.push("CLAUDE.md");
@@ -347,27 +434,46 @@ pub fn find_instruction_files(root: &Path, config: &AuditConfig) -> Vec<PathBuf>
         }
     }
 
-    // Common glob patterns
-    let mut glob_patterns = vec![
-        ".claude/**/SKILL.md",
-        ".agents/**/SKILL.md",
-        ".agents/**/AGENTS.md",
-        "src/**/AGENTS.md",
-        ".agent/runbooks/*.md",
-        ".claude/skills/**/runbooks/*.md",
-    ];
+    collect_named_files_recursive(
+        &root.join(".claude"),
+        "SKILL.md",
+        &config.skip_dirs,
+        &mut found,
+    );
+    collect_named_files_recursive(
+        &root.join(".agents"),
+        "SKILL.md",
+        &config.skip_dirs,
+        &mut found,
+    );
+    collect_named_files_recursive(
+        &root.join(".agents"),
+        "AGENTS.md",
+        &config.skip_dirs,
+        &mut found,
+    );
+    collect_named_files_recursive(
+        &root.join("src"),
+        "AGENTS.md",
+        &config.skip_dirs,
+        &mut found,
+    );
+    collect_top_level_markdown_files(&root.join(".agent/runbooks"), &mut found);
+    collect_runbook_files_recursive(&root.join(".claude/skills"), &config.skip_dirs, &mut found);
 
     if config.include_claude_md {
-        glob_patterns.push(".claude/**/CLAUDE.md");
-        glob_patterns.push("src/**/CLAUDE.md");
-    }
-
-    for pattern in &glob_patterns {
-        if let Ok(entries) = glob::glob(&root.join(pattern).to_string_lossy()) {
-            for entry in entries.flatten() {
-                found.insert(entry);
-            }
-        }
+        collect_named_files_recursive(
+            &root.join(".claude"),
+            "CLAUDE.md",
+            &config.skip_dirs,
+            &mut found,
+        );
+        collect_named_files_recursive(
+            &root.join("src"),
+            "CLAUDE.md",
+            &config.skip_dirs,
+            &mut found,
+        );
     }
 
     let mut result: Vec<PathBuf> = found.into_iter().collect();
@@ -680,18 +786,10 @@ mod tests {
 
         fs::create_dir_all(root.join(".agent/runbooks")).unwrap();
         fs::write(root.join(".agent/runbooks/precommit.md"), "# Precommit").unwrap();
-        fs::write(
-            root.join(".agent/runbooks/prerelease.md"),
-            "# Prerelease",
-        )
-        .unwrap();
+        fs::write(root.join(".agent/runbooks/prerelease.md"), "# Prerelease").unwrap();
 
         fs::create_dir_all(root.join(".claude/skills/email/runbooks")).unwrap();
-        fs::write(
-            root.join(".claude/skills/email/runbooks/send.md"),
-            "# Send",
-        )
-        .unwrap();
+        fs::write(root.join(".claude/skills/email/runbooks/send.md"), "# Send").unwrap();
 
         let config = AuditConfig::corky();
         let files = find_instruction_files(root, &config);
@@ -710,5 +808,68 @@ mod tests {
         let config = AuditConfig::agent_doc();
         let files = find_instruction_files(root, &config);
         assert_eq!(files.len(), 1);
+    }
+
+    #[test]
+    fn find_instruction_files_prunes_skip_dirs_before_descending() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+
+        fs::create_dir_all(root.join("src/agent")).unwrap();
+        fs::write(root.join("src/agent/AGENTS.md"), "# Agents").unwrap();
+        fs::create_dir_all(root.join("src/node_modules/pkg")).unwrap();
+        fs::write(
+            root.join("src/node_modules/pkg/AGENTS.md"),
+            "# Ignored Agents",
+        )
+        .unwrap();
+
+        fs::create_dir_all(root.join(".claude/settings")).unwrap();
+        fs::write(root.join(".claude/settings/CLAUDE.md"), "# Claude").unwrap();
+        fs::create_dir_all(root.join(".claude/.venv/cache")).unwrap();
+        fs::write(
+            root.join(".claude/.venv/cache/CLAUDE.md"),
+            "# Ignored Claude",
+        )
+        .unwrap();
+
+        fs::create_dir_all(root.join(".claude/skills/email/runbooks")).unwrap();
+        fs::write(root.join(".claude/skills/email/runbooks/send.md"), "# Send").unwrap();
+        fs::create_dir_all(root.join(".claude/skills/node_modules/pkg/runbooks")).unwrap();
+        fs::write(
+            root.join(".claude/skills/node_modules/pkg/runbooks/ignored.md"),
+            "# Ignored Runbook",
+        )
+        .unwrap();
+
+        fs::create_dir_all(root.join(".agents/team")).unwrap();
+        fs::write(root.join(".agents/team/AGENTS.md"), "# Team Agents").unwrap();
+        fs::create_dir_all(root.join(".agents/vendor/pkg")).unwrap();
+        fs::write(
+            root.join(".agents/vendor/pkg/AGENTS.md"),
+            "# Ignored Vendor Agents",
+        )
+        .unwrap();
+
+        let config = AuditConfig::agent_doc();
+        let files = find_instruction_files(root, &config);
+        let rels: Vec<_> = files
+            .iter()
+            .map(|path| {
+                path.strip_prefix(root)
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string()
+            })
+            .collect();
+
+        assert!(rels.contains(&"src/agent/AGENTS.md".to_string()));
+        assert!(rels.contains(&".claude/settings/CLAUDE.md".to_string()));
+        assert!(rels.contains(&".claude/skills/email/runbooks/send.md".to_string()));
+        assert!(rels.contains(&".agents/team/AGENTS.md".to_string()));
+        assert!(!rels.contains(&"src/node_modules/pkg/AGENTS.md".to_string()));
+        assert!(!rels.contains(&".claude/.venv/cache/CLAUDE.md".to_string()));
+        assert!(!rels.contains(&".claude/skills/node_modules/pkg/runbooks/ignored.md".to_string()));
+        assert!(!rels.contains(&".agents/vendor/pkg/AGENTS.md".to_string()));
     }
 }

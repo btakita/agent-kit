@@ -5,6 +5,6 @@
 //! actionable content).
 
 pub use instruction_files::{
-    check_actionable, check_line_budget, check_staleness, check_tree_paths,
-    find_instruction_files, find_root, run, AuditConfig, Issue,
+    AuditConfig, Issue, check_actionable, check_line_budget, check_staleness, check_tree_paths,
+    find_instruction_files, find_root, run,
 };

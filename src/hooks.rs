@@ -166,7 +166,9 @@ impl HookRegistry {
 
             // Parse timestamp from filename: "<timestamp>-<event_id>.json"
             let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-            let file_ts: u64 = stem.split('-').next()
+            let file_ts: u64 = stem
+                .split('-')
+                .next()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
 
@@ -275,7 +277,9 @@ pub struct FileTransport {
 
 impl FileTransport {
     pub fn new(hooks_root: impl Into<PathBuf>) -> Self {
-        Self { hooks_root: hooks_root.into() }
+        Self {
+            hooks_root: hooks_root.into(),
+        }
     }
 }
 
@@ -309,7 +313,9 @@ pub struct SocketTransport {
 #[cfg(unix)]
 impl SocketTransport {
     pub fn new(socket_path: impl Into<PathBuf>) -> Self {
-        Self { socket_path: socket_path.into() }
+        Self {
+            socket_path: socket_path.into(),
+        }
     }
 
     /// Create from a project root directory.
@@ -326,8 +332,12 @@ impl HookTransport for SocketTransport {
         use std::io::Write;
         use std::os::unix::net::UnixStream;
 
-        let mut stream = UnixStream::connect(&self.socket_path)
-            .with_context(|| format!("failed to connect to hook socket: {}", self.socket_path.display()))?;
+        let mut stream = UnixStream::connect(&self.socket_path).with_context(|| {
+            format!(
+                "failed to connect to hook socket: {}",
+                self.socket_path.display()
+            )
+        })?;
 
         let payload = serde_json::json!({
             "type": "hook_event",
@@ -391,7 +401,9 @@ impl HookTransport for ChainTransport {
     }
 
     fn is_available(&self, target_session: &str) -> bool {
-        self.transports.iter().any(|t| t.is_available(target_session))
+        self.transports
+            .iter()
+            .any(|t| t.is_available(target_session))
     }
 
     fn name(&self) -> &str {
@@ -476,11 +488,16 @@ mod tests {
         let tmp = tempfile::TempDir::new().unwrap();
         let registry = HookRegistry::new(tmp.path().join("hooks"));
 
-        registry.fire("test", Event {
-            file: "a.md".into(),
-            session_id: "s1".into(),
-            data: serde_json::json!(null),
-        }).unwrap();
+        registry
+            .fire(
+                "test",
+                Event {
+                    file: "a.md".into(),
+                    session_id: "s1".into(),
+                    data: serde_json::json!(null),
+                },
+            )
+            .unwrap();
 
         // Poll with a future timestamp — should get nothing
         let future = now_secs() + 100;
@@ -497,11 +514,16 @@ mod tests {
         let tmp = tempfile::TempDir::new().unwrap();
         let registry = HookRegistry::with_ttl(tmp.path().join("hooks"), 0); // 0s TTL = expire immediately
 
-        registry.fire("test", Event {
-            file: "a.md".into(),
-            session_id: "s1".into(),
-            data: serde_json::json!(null),
-        }).unwrap();
+        registry
+            .fire(
+                "test",
+                Event {
+                    file: "a.md".into(),
+                    session_id: "s1".into(),
+                    data: serde_json::json!(null),
+                },
+            )
+            .unwrap();
 
         // Brief sleep so the event is at least 1 second old
         std::thread::sleep(std::time::Duration::from_millis(1100));
@@ -515,7 +537,10 @@ mod tests {
             .unwrap()
             .filter_map(|e| e.ok())
             .collect();
-        assert!(remaining.is_empty(), "expired event files should be deleted");
+        assert!(
+            remaining.is_empty(),
+            "expired event files should be deleted"
+        );
     }
 
     #[test]
@@ -531,12 +556,26 @@ mod tests {
         let tmp = tempfile::TempDir::new().unwrap();
         let registry = HookRegistry::new(tmp.path().join("hooks"));
 
-        registry.fire("post_write", Event {
-            file: "a.md".into(), session_id: "s1".into(), data: serde_json::json!(null),
-        }).unwrap();
-        registry.fire("post_commit", Event {
-            file: "a.md".into(), session_id: "s1".into(), data: serde_json::json!(null),
-        }).unwrap();
+        registry
+            .fire(
+                "post_write",
+                Event {
+                    file: "a.md".into(),
+                    session_id: "s1".into(),
+                    data: serde_json::json!(null),
+                },
+            )
+            .unwrap();
+        registry
+            .fire(
+                "post_commit",
+                Event {
+                    file: "a.md".into(),
+                    session_id: "s1".into(),
+                    data: serde_json::json!(null),
+                },
+            )
+            .unwrap();
 
         let mut hooks = registry.list_hooks();
         hooks.sort();
@@ -549,18 +588,23 @@ mod tests {
         let registry = HookRegistry::new(tmp.path().join("hooks"));
 
         for i in 0..3 {
-            registry.fire("test", Event {
-                file: format!("{}.md", i),
-                session_id: "s1".into(),
-                data: serde_json::json!({"order": i}),
-            }).unwrap();
+            registry
+                .fire(
+                    "test",
+                    Event {
+                        file: format!("{}.md", i),
+                        session_id: "s1".into(),
+                        data: serde_json::json!({"order": i}),
+                    },
+                )
+                .unwrap();
         }
 
         let events = registry.poll("test", 0).unwrap();
         assert_eq!(events.len(), 3);
         // All should have same or increasing timestamps
         for i in 1..events.len() {
-            assert!(events[i].timestamp >= events[i-1].timestamp);
+            assert!(events[i].timestamp >= events[i - 1].timestamp);
         }
     }
 
@@ -641,16 +685,18 @@ mod tests {
         let registry = HookRegistry::new(&hooks_root);
         let transport = FileTransport::new(tmp.path().join("delivery"));
 
-        let event_id = registry.fire_and_deliver(
-            "post_commit",
-            Event {
-                file: "doc.md".into(),
-                session_id: "s1".into(),
-                data: serde_json::json!(null),
-            },
-            &transport,
-            &["target-1".into()],
-        ).unwrap();
+        let event_id = registry
+            .fire_and_deliver(
+                "post_commit",
+                Event {
+                    file: "doc.md".into(),
+                    session_id: "s1".into(),
+                    data: serde_json::json!(null),
+                },
+                &transport,
+                &["target-1".into()],
+            )
+            .unwrap();
 
         assert!(!event_id.is_empty());
 
