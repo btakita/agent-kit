@@ -13,3 +13,4 @@ pub mod audit_common;
 pub mod detect;
 #[cfg(feature = "hooks")]
 pub mod hooks;
+pub mod skill;
