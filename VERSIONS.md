@@ -1,5 +1,11 @@
 # Versions
 
+## 0.4.1
+
+- Restore the `skill` module export for compatibility with callers using `agent_kit::skill::SkillConfig`
+- Keep recursive instruction-file discovery from descending into skipped directories such as `node_modules`, `.venv`, `target`, and `vendor`
+- Remove the now-unused direct `glob` dependency
+
 ## 0.4.0
 
 - `find_instruction_files()` now prunes `skip_dirs` during recursive discovery, so `audit-docs` no longer walks vendored/cache trees like `node_modules`, `.venv`, `target`, or `vendor` before filtering results

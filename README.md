@@ -22,10 +22,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-agent-kit = "0.3"
+agent-kit = "0.4"
 # Optional features:
-# agent-kit = { version = "0.3", features = ["hooks"] }
-# agent-kit = { version = "0.3", features = ["audit"] }
+# agent-kit = { version = "0.4", features = ["hooks"] }
+# agent-kit = { version = "0.4", features = ["audit"] }
 ```
 
 ### Skill Management

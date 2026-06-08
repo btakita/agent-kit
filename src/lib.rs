@@ -4,8 +4,7 @@
 //! - Agent environment detection (Claude Code, OpenCode, Codex, Cursor, Generic)
 //! - Instruction file auditing (via `instruction-files` crate, behind `audit` feature)
 //! - Hook-based event coordination between sessions (behind `hooks` feature)
-//!
-//! Skill management has moved to the `agent-skills` crate.
+//! - Skill file install/check/uninstall compatibility via `skill::SkillConfig`
 
 #[cfg(feature = "audit")]
 pub mod audit;
